@@ -1,0 +1,66 @@
+# Baut eine installierbare Android-APK und stellt sie als Download bereit:
+# https://github.com/majagillian/HabitTracker/releases/tag/apk-latest
+# Start: bei jedem Push auf main oder manuell unter „Actions → Android-APK bauen → Run workflow“.
+name: Android-APK bauen
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Android-Projekt erzeugen (Expo Prebuild)
+        run: npx expo prebuild --platform android --no-install
+        env:
+          CI: 1
+
+      - name: APK bauen (Release, arm64 – passt für fast alle aktuellen Handys)
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a
+
+      - name: APK umbenennen
+        run: cp android/app/build/outputs/apk/release/app-release.apk dein-tag.apk
+
+      - name: Als Workflow-Artefakt speichern
+        uses: actions/upload-artifact@v4
+        with:
+          name: dein-tag-apk
+          path: dein-tag.apk
+
+      - name: Als Download-Link veröffentlichen (Release „apk-latest“)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-latest
+          name: Dein Tag – aktuelle Test-APK
+          body: |
+            Neueste Test-Version von „Dein Tag“ (Stand ${{ github.sha }}).
+            Auf dem Android-Handy herunterladen, öffnen und die Installation aus unbekannten Quellen erlauben.
+          prerelease: true
+          make_latest: false
+          files: dein-tag.apk

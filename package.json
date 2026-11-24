@@ -48,7 +48,9 @@
     "android": "expo run:android",
     "web": "expo start --web",
     "build:web": "expo export -p web",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:apk": "npx expo prebuild -p android --no-install && cd android && ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a",
+    "build:apk:cloud": "npx eas-cli@latest build --profile preview --platform android"
   },
   "private": true
 }
